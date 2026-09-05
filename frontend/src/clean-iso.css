@@ -1,0 +1,373 @@
+/* Clean Isometric 3D Cube Design - COPY THIS TO index.css */
+
+.forensic-glow-bg {
+  position: absolute;
+  inset: -100px;
+  background: radial-gradient(
+    circle,
+    rgba(53, 212, 136, 0.15) 0%,
+    rgba(79, 140, 255, 0.1) 50%,
+    transparent 80%
+  );
+  filter: blur(80px);
+  animation: glowPulse 4s ease-in-out infinite;
+  z-index: 0;
+}
+
+/* Isometric Container */
+.isometric-3d-container {
+  position: relative;
+  width: 600px;
+  height: 600px;
+  transform-style: preserve-3d;
+  perspective: 1200px;
+  z-index: 2;
+}
+
+/* Main 3D Isometric Cube */
+.iso-cube-main {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotateX(60deg) rotateZ(45deg);
+  transform-style: preserve-3d;
+  width: 300px;
+  height: 300px;
+  animation: cubeFloat 6s ease-in-out infinite;
+}
+
+@keyframes cubeFloat {
+  0%, 100% {
+    transform: translate(-50%, -50%) rotateX(60deg) rotateZ(45deg) translateY(0);
+  }
+  50% {
+    transform: translate(-50%, -50%) rotateX(60deg) rotateZ(45deg) translateY(-20px);
+  }
+}
+
+/* Cube Faces */
+.cube-face {
+  position: absolute;
+  width: 300px;
+  height: 300px;
+  border: 2px solid rgba(53, 212, 136, 0.4);
+  background: linear-gradient(135deg, 
+    rgba(26, 35, 50, 0.6) 0%, 
+    rgba(13, 17, 23, 0.8) 100%
+  );
+  backdrop-filter: blur(10px);
+}
+
+/* Front Face */
+.cube-face.front {
+  transform: translateZ(150px);
+  background: linear-gradient(180deg, 
+    rgba(26, 35, 50, 0.4) 0%, 
+    rgba(13, 68, 89, 0.6) 100%
+  );
+  box-shadow: inset 0 0 100px rgba(53, 212, 136, 0.1);
+}
+
+/* Top Face */
+.cube-face.top {
+  transform: rotateX(90deg) translateZ(150px);
+  background: linear-gradient(135deg, 
+    rgba(26, 50, 59, 0.5) 0%, 
+    rgba(13, 34, 51, 0.7) 100%
+  );
+  box-shadow: inset 0 0 100px rgba(79, 140, 255, 0.1);
+}
+
+/* Right Face */
+.cube-face.right {
+  transform: rotateY(90deg) translateZ(150px);
+  background: linear-gradient(135deg, 
+    rgba(21, 36, 50, 0.5) 0%, 
+    rgba(11, 25, 39, 0.7) 100%
+  );
+  box-shadow: inset 0 0 100px rgba(53, 212, 136, 0.08);
+}
+
+/* Grid Overlay on Cube */
+.grid-overlay {
+  position: absolute;
+  inset: 0;
+  background-image: 
+    linear-gradient(rgba(53, 212, 136, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(53, 212, 136, 0.1) 1px, transparent 1px);
+  background-size: 50px 50px;
+  transform: translateZ(151px);
+  animation: gridPulse 3s ease-in-out infinite;
+}
+
+@keyframes gridPulse {
+  0%, 100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Floating Icons */
+.floating-icon {
+  position: absolute;
+  font-size: 2.5rem;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.6));
+  animation: iconFloat 5s ease-in-out infinite;
+  z-index: 10;
+}
+
+.f-icon-1 {
+  top: 5%;
+  left: 48%;
+  animation-delay: 0s;
+}
+
+.f-icon-2 {
+  top: 12%;
+  left: 48%;
+  animation-delay: 0.2s;
+}
+
+.f-icon-3 {
+  top: 19%;
+  left: 48%;
+  animation-delay: 0.4s;
+}
+
+.f-icon-4 {
+  top: 26%;
+  left: 48%;
+  animation-delay: 0.6s;
+}
+
+.f-icon-5 {
+  top: 33%;
+  left: 48%;
+  animation-delay: 0.8s;
+}
+
+.f-icon-6 {
+  top: 40%;
+  left: 48%;
+  animation-delay: 1s;
+}
+
+.f-icon-7 {
+  top: 47%;
+  left: 48%;
+  animation-delay: 1.2s;
+}
+
+.f-icon-8 {
+  top: 54%;
+  left: 48%;
+  animation-delay: 1.4s;
+}
+
+@keyframes iconFloat {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+    opacity: 0.8;
+  }
+  50% {
+    transform: translateY(-10px) scale(1.1);
+    opacity: 1;
+  }
+}
+
+/* Hexagon Shape on Right */
+.hexagon-shape {
+  position: absolute;
+  top: 50%;
+  right: 10%;
+  width: 100px;
+  height: 100px;
+  background: rgba(13, 17, 23, 0.6);
+  border: 3px solid rgba(53, 212, 136, 0.6);
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 
+    0 0 30px rgba(53, 212, 136, 0.4),
+    inset 0 0 30px rgba(53, 212, 136, 0.2);
+  animation: hexFloat 4s ease-in-out infinite;
+}
+
+@keyframes hexFloat {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-15px) rotate(10deg);
+  }
+}
+
+.hex-dot {
+  width: 20px;
+  height: 20px;
+  background: rgba(53, 212, 136, 1);
+  border-radius: 50%;
+  box-shadow: 0 0 20px rgba(53, 212, 136, 1);
+  animation: dotPulse 2s ease-in-out infinite;
+}
+
+@keyframes dotPulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.5);
+    opacity: 0.7;
+  }
+}
+
+/* Question Marks */
+.question-symbol {
+  position: absolute;
+  font-size: 1.8rem;
+  color: rgba(200, 200, 200, 0.7);
+  font-weight: bold;
+  text-shadow: 0 0 10px rgba(200, 200, 200, 0.5);
+  animation: symbolFloat 5s ease-in-out infinite;
+}
+
+.qs-1 {
+  top: 61%;
+  left: 48%;
+  animation-delay: 0s;
+}
+
+.qs-2 {
+  top: 68%;
+  left: 48%;
+  animation-delay: 1.5s;
+}
+
+.qs-3 {
+  top: 75%;
+  left: 48%;
+  animation-delay: 3s;
+}
+
+@keyframes symbolFloat {
+  0%, 100% {
+    transform: translateY(0);
+    opacity: 0.6;
+  }
+  50% {
+    transform: translateY(-12px);
+    opacity: 1;
+  }
+}
+
+/* Plus Signs */
+.plus-symbol {
+  position: absolute;
+  font-size: 2rem;
+  color: rgba(255, 215, 0, 0.8);
+  font-weight: bold;
+  text-shadow: 0 0 15px rgba(255, 215, 0, 0.6);
+  animation: plusRotate 6s ease-in-out infinite;
+}
+
+.ps-1 {
+  top: 82%;
+  left: 48%;
+  animation-delay: 0s;
+}
+
+.ps-2 {
+  top: 89%;
+  left: 48%;
+  animation-delay: 3s;
+}
+
+@keyframes plusRotate {
+  0%, 100% {
+    transform: rotate(0deg) scale(1);
+    opacity: 0.7;
+  }
+  50% {
+    transform: rotate(90deg) scale(1.2);
+    opacity: 1;
+  }
+}
+
+/* Letter Symbols */
+.letter-symbol {
+  position: absolute;
+  font-size: 1.5rem;
+  color: rgba(180, 180, 180, 0.6);
+  font-weight: 600;
+  font-family: Arial, sans-serif;
+  text-shadow: 0 0 8px rgba(180, 180, 180, 0.4);
+  animation: letterDrift 7s ease-in-out infinite;
+}
+
+.ls-1 {
+  bottom: 8%;
+  left: 48%;
+  animation-delay: 0s;
+}
+
+.ls-2 {
+  bottom: 4%;
+  left: 48%;
+  animation-delay: 2.3s;
+}
+
+.ls-3 {
+  bottom: 0%;
+  left: 48%;
+  animation-delay: 4.6s;
+}
+
+@keyframes letterDrift {
+  0%, 100% {
+    transform: translateY(0) translateX(0);
+    opacity: 0.5;
+  }
+  50% {
+    transform: translateY(-15px) translateX(8px);
+    opacity: 0.9;
+  }
+}
+
+/* Vertical Scan Lines */
+.vertical-scan-line {
+  position: absolute;
+  width: 3px;
+  height: 80%;
+  background: linear-gradient(to bottom,
+    transparent,
+    rgba(53, 212, 136, 0.6) 50%,
+    transparent
+  );
+  box-shadow: 0 0 10px rgba(53, 212, 136, 0.4);
+  animation: scanMove 3s linear infinite;
+}
+
+.vsl-1 {
+  top: 10%;
+  left: 10%;
+  animation-delay: 0s;
+}
+
+.vsl-2 {
+  top: 10%;
+  right: 5%;
+  animation-delay: 1.5s;
+}
+
+@keyframes scanMove {
+  0%, 100% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+}
