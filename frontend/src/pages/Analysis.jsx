@@ -1,154 +1,152 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
+import { BrainCircuit, Sparkles } from "lucide-react";
 import Loading from "../components/Loading.jsx";
-import { fetchEvidenceForCase, runAnalysis, fetchAnalysisResult } from "../services/api.js";
+import { fetchEvidenceForCase, fetchAnalysisResult, runAnalysis } from "../services/api.js";
 
-const TABS = ["NLP", "ML", "DL"];
+const tabs = ["NLP / AI", "ML", "DL"];
+const tone = (r) =>
+  String(r).toLowerCase() === "high"
+    ? "badge-danger"
+    : String(r).toLowerCase() === "medium"
+    ? "badge-warning"
+    : "badge-neutral";
 
 export default function Analysis() {
   const { caseId } = useParams();
-  const [searchParams] = useSearchParams();
-  const preselectedId = searchParams.get("evidenceId");
-
-  const [evidenceList, setEvidenceList] = useState([]);
-  const [selectedEvidenceId, setSelectedEvidenceId] = useState(preselectedId || "");
+  const [params] = useSearchParams();
+  const [items, setItems] = useState([]);
+  const [selected, setSelected] = useState(params.get("evidenceId") || "");
   const [result, setResult] = useState(null);
-  const [activeTab, setActiveTab] = useState("NLP");
+  const [tab, setTab] = useState("NLP / AI");
   const [loading, setLoading] = useState(true);
-  const [running, setRunning] = useState(false);
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    let mounted = true;
-    async function load() {
-      try {
-        const data = await fetchEvidenceForCase(caseId);
-        if (mounted) setEvidenceList(data || []);
-      } catch (err) {
-        if (mounted) setError("Could not load evidence list.");
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    }
-    load();
-    return () => { mounted = false; };
+    fetchEvidenceForCase(caseId)
+      .then(setItems)
+      .catch(() => setError("Could not load evidence."))
+      .finally(() => setLoading(false));
   }, [caseId]);
 
-  const handleRunAnalysis = async () => {
-    if (!selectedEvidenceId) {
-      setError("Select a piece of evidence first.");
-      return;
-    }
-    setRunning(true);
-    setError("");
-    try {
-      const data = await runAnalysis(selectedEvidenceId);
-      setResult(data);
-    } catch (err) {
-      setError(err.response?.data?.detail || "Analysis failed.");
-    } finally {
-      setRunning(false);
-    }
-  };
-
-  const handleFetchExisting = async (evidenceId) => {
-    setError("");
-    try {
-      const data = await fetchAnalysisResult(evidenceId);
-      setResult(data);
-    } catch (err) {
-      setResult(null);
-    }
-  };
-
   useEffect(() => {
-    if (selectedEvidenceId) handleFetchExisting(selectedEvidenceId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedEvidenceId]);
+    if (selected) fetchAnalysisResult(selected).then(setResult).catch(() => setResult(null));
+  }, [selected]);
 
-  if (loading) return <Loading label="Loading evidence..." />;
+  const run = async () => {
+    if (!selected) return setError("Select evidence first.");
+    setBusy(true);
+    setError("");
+    try {
+      setResult(await runAnalysis(selected));
+    } catch (e) {
+      setError(e.response?.data?.detail || "Analysis failed.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (loading) return <Loading label="Loading analysis workspace…" />;
+
+  const nlp = result?.nlp || {};
+  const ml = result?.ml || {};
+  const deepfake = result?.deepfake || {};
 
   return (
-    <div>
-      <h2>AI Analysis</h2>
-
-      <div className="card" style={{ marginBottom: "24px" }}>
-        {error && <div className="login-error">{error}</div>}
-
-        <div className="form-group" style={{ maxWidth: "360px" }}>
-          <label>Select Evidence</label>
-          <select
-            value={selectedEvidenceId}
-            onChange={(e) => setSelectedEvidenceId(e.target.value)}
-          >
-            <option value="">-- Choose evidence --</option>
-            {evidenceList.map((ev) => (
-              <option key={ev._id || ev.id} value={ev._id || ev.id}>
-                {ev.filename || ev.file_name}
-              </option>
-            ))}
-          </select>
+    <section className="page-shell">
+      <div className="page-heading">
+        <div>
+          <p className="eyebrow">AI ANALYSIS</p>
+          <h1>Evidence Intelligence</h1>
+          <p>Run Groq-assisted analysis and review risk indicators.</p>
         </div>
+      </div>
 
-        <button className="btn btn-primary" onClick={handleRunAnalysis} disabled={running}>
-          {running ? "Running Analysis..." : "Run Analysis"}
+      {error && <div className="error-card">{error}</div>}
+
+      <div className="card analysis-controls">
+        <select value={selected} onChange={(e) => setSelected(e.target.value)}>
+          <option value="">Select evidence…</option>
+          {items.map((ev) => (
+            <option key={ev.evidence_id} value={ev.evidence_id}>
+              {ev.evidence_name}
+            </option>
+          ))}
+        </select>
+        <button className="btn btn-primary" onClick={run} disabled={busy}>
+          <BrainCircuit size={17} />
+          {busy ? "Running analysis…" : "Run Analysis"}
         </button>
       </div>
 
       {result && (
         <div className="card">
-          <div style={{ display: "flex", gap: "8px", marginBottom: "16px" }}>
-            {TABS.map((tab) => (
-              <button
-                key={tab}
-                className="btn"
-                style={{
-                  background: activeTab === tab ? "var(--accent)" : "var(--bg-panel-alt)",
-                  color: activeTab === tab ? "#fff" : "var(--text-secondary)",
-                }}
-                onClick={() => setActiveTab(tab)}
-              >
-                {tab} Results
+          <div className="tabs">
+            {tabs.map((t) => (
+              <button key={t} className={tab === t ? "tab active" : "tab"} onClick={() => setTab(t)}>
+                {t}
               </button>
             ))}
           </div>
 
-          {activeTab === "NLP" && (
-            <div>
-              <h4>Entities Extracted</h4>
-              <pre style={{ whiteSpace: "pre-wrap", color: "var(--text-secondary)" }}>
-                {JSON.stringify(result.nlp || result.entities || {}, null, 2)}
-              </pre>
+          {tab === "NLP / AI" && (
+            <div className="results">
+              <div className="result-top">
+                <div>
+                  <h2>Analysis Findings</h2>
+                  <p className="muted">{result.indicator_count || 0} suspicious indicators found</p>
+                </div>
+                <span className={`badge ${tone(result.risk_level)}`}>{result.risk_level || "unknown"} risk</span>
+              </div>
+
+              <pre className="report-panel">{nlp.summary || "No narrative analysis returned."}</pre>
+
+              <h3>Entities extracted</h3>
+              <div className="chip-list">
+                {(nlp.entities_extracted || []).length ? (
+                  (nlp.entities_extracted || []).map((x, i) => (
+                    <span className="indicator-chip" key={i}>
+                      {typeof x === "string" ? x : JSON.stringify(x)}
+                    </span>
+                  ))
+                ) : (
+                  <span className="muted">No entities extracted.</span>
+                )}
+              </div>
+
+              <h3>Suspicious indicators</h3>
+              <div className="chip-list">
+                {(result.suspicious_indicators || []).length ? (
+                  (result.suspicious_indicators || []).map((x, i) => (
+                    <span className="indicator-chip" key={i}>
+                      {typeof x === "string" ? x : JSON.stringify(x)}
+                    </span>
+                  ))
+                ) : (
+                  <span className="muted">No indicators returned.</span>
+                )}
+              </div>
             </div>
           )}
 
-          {activeTab === "ML" && (
-            <div>
-              <h4>Anomaly / Risk Flags</h4>
-              <pre style={{ whiteSpace: "pre-wrap", color: "var(--text-secondary)" }}>
-                {JSON.stringify(result.anomaly || result.ml || {}, null, 2)}
-              </pre>
+          {tab === "ML" && (
+            <div className="coming-soon">
+              <Sparkles size={28} />
+              <h2>Not Yet Implemented</h2>
+              <p>{ml.note || "Machine Learning anomaly detection module under development."}</p>
             </div>
           )}
 
-          {activeTab === "DL" && (
-            <div>
-              <h4>Deepfake Detection</h4>
-              <p>
-                Fake Probability:{" "}
-                <span className="badge badge-danger">
-                  {result.deepfake?.fake_probability != null
-                    ? `${(result.deepfake.fake_probability * 100).toFixed(1)}%`
-                    : "N/A"}
-                </span>
-              </p>
-              <pre style={{ whiteSpace: "pre-wrap", color: "var(--text-secondary)" }}>
-                {JSON.stringify(result.deepfake || result.dl || {}, null, 2)}
-              </pre>
+          {tab === "DL" && (
+            <div className="coming-soon">
+              <Sparkles size={28} />
+              <h2>Not Yet Implemented</h2>
+              <p>{deepfake.note || "Deep Learning deepfake detection module under development."}</p>
             </div>
           )}
         </div>
       )}
-    </div>
+    </section>
   );
 }

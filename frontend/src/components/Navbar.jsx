@@ -1,25 +1,2 @@
-import React from "react";
-import { useNavigate } from "react-router-dom";
-import { logout } from "../services/api.js";
-
-export default function Navbar() {
-  const navigate = useNavigate();
-  const username = localStorage.getItem("username") || "Investigator";
-  
-  const handleLogout = () => {
-    logout();
-    navigate("/login");
-  };
-  
-  return (
-    <header className="navbar">
-      <span className="navbar-brand">AI Digital Forensics</span>
-      <div className="navbar-right">
-        <span className="navbar-user">{username}</span>
-        <button className="navbar-logout" onClick={handleLogout}>
-          Log out
-        </button>
-      </div>
-    </header>
-  );
-}
+import React from"react";import{useNavigate}from"react-router-dom";import{LogOut,ShieldCheck}from"lucide-react";import{auth}from"../services/firebase";import{signOut}from"firebase/auth";import{useAuth}from"../context/AuthContext.jsx";
+export default function Navbar(){const navigate=useNavigate(),{currentUser}=useAuth();const logout=async()=>{await signOut(auth);navigate("/login")};return <header className="navbar"><div className="brand"><span className="brand-mark"><ShieldCheck size={19}/></span><span>ForensiqAI</span><small>Digital Forensics</small></div><div className="navbar-right"><span className="navbar-user">{currentUser?.email||"Investigator"}</span><button className="navbar-logout" onClick={logout}><LogOut size={16}/> Log out</button></div></header>}

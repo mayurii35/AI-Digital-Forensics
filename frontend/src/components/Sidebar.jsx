@@ -1,25 +1,2 @@
-import React from "react";
-import { NavLink } from "react-router-dom";
-
-const LINKS = [
-  { to: "/dashboard", label: "Dashboard" },
-  { to: "/cases", label: "Cases" },
-  { to: "/reports", label: "Reports" },
-  { to: "/audit-logs", label: "Audit Logs" },
-];
-
-export default function Sidebar() {
-  return (
-    <nav className="sidebar">
-      {LINKS.map((link) => (
-        <NavLink
-          key={link.to}
-          to={link.to}
-          className={({ isActive }) => "sidebar-link" + (isActive ? " sidebar-link-active" : "")}
-        >
-          {link.label}
-        </NavLink>
-      ))}
-    </nav>
-  );
-}
+import React from"react";import{NavLink}from"react-router-dom";import{FileText,FolderOpen,LayoutDashboard,Shield}from"lucide-react";
+const links=[[LayoutDashboard,"Dashboard","/dashboard"],[FolderOpen,"Cases","/cases"],[FileText,"Reports","/reports"],[Shield,"Audit Logs","/audit-logs"]];export default function Sidebar(){return <nav className="sidebar">{links.map(([Icon,label,to])=><NavLink key={to} to={to} className={({isActive})=>"sidebar-link"+(isActive?" sidebar-link-active":"")}><Icon size={19}/><span>{label}</span></NavLink>)}</nav>}

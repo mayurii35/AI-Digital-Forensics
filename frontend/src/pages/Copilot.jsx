@@ -36,9 +36,23 @@ export default function Copilot() {
     }
   };
 
+  const suggestedQuestions = [
+    "Summarize findings",
+    "What is the highest risk evidence?",
+    "List all suspicious indicators",
+  ];
+
   return (
     <div>
       <h2>AI Copilot</h2>
+
+      <div className="chip-list" style={{ marginTop: 0, marginBottom: "14px" }}>
+        {suggestedQuestions.map((suggestion) => (
+          <button key={suggestion} className="indicator-chip" onClick={() => setQuestion(suggestion)}>
+            {suggestion}
+          </button>
+        ))}
+      </div>
 
       <div className="card" style={{ display: "flex", flexDirection: "column", height: "60vh" }}>
         <div

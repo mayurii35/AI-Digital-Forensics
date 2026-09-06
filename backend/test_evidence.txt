@@ -1,0 +1,5 @@
+Suspicious login activity detected.
+
+Multiple login attempts were recorded from an unknown IP address.
+The account was accessed at an unusual time.
+The user did not recognize the login activity.

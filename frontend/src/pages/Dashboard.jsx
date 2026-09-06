@@ -1,149 +1,20 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { BriefcaseBusiness, FolderOpen, FileCheck2, Plus, ShieldCheck } from "lucide-react";
 import StatCard from "../components/StatCard.jsx";
 import Loading from "../components/Loading.jsx";
 import { fetchCases, fetchAuditLogs } from "../services/api.js";
 
+const statusTone = (status) => String(status).toLowerCase() === "closed" ? "badge-success" : String(status).toLowerCase() === "open" ? "badge-warning" : "badge-neutral";
 export default function Dashboard() {
-  const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [cases, setCases] = useState([]);
-  const [auditCount, setAuditCount] = useState(0);
-
-  useEffect(() => {
-    let mounted = true;
-
-    async function loadData() {
-      setLoading(true);
-      setError("");
-      try {
-        const [casesData, auditData] = await Promise.allSettled([
-          fetchCases(),
-          fetchAuditLogs(),
-        ]);
-
-        if (!mounted) return;
-
-        if (casesData.status === "fulfilled") {
-          setCases(casesData.value || []);
-        }
-        if (auditData.status === "fulfilled") {
-          setAuditCount((auditData.value || []).length);
-        }
-
-        if (casesData.status === "rejected" && auditData.status === "rejected") {
-          setError("Could not load dashboard data. Please try again.");
-        }
-      } catch (err) {
-        if (mounted) setError("Something went wrong while loading the dashboard.");
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    }
-
-    loadData();
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
-  if (loading) return <Loading label="Loading dashboard..." />;
-
-  const totalCases = cases.length;
-  const openCases = cases.filter((c) => c.status === "open" || c.status === "Open").length;
-  const closedCases = cases.filter((c) => c.status === "closed" || c.status === "Closed").length;
-
-  const recentCases = [...cases]
-    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-    .slice(0, 5);
-
-  return (
-    <div>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: "20px",
-        }}
-      >
-        <h2 style={{ margin: 0 }}>Dashboard</h2>
-        <button className="btn btn-primary" onClick={() => navigate("/cases/create")}>
-          + New Case
-        </button>
-      </div>
-
-      {error && (
-        <div className="login-error" style={{ marginBottom: "20px" }}>
-          {error}
-        </div>
-      )}
-
-      <div className="grid grid-cols-3" style={{ marginBottom: "28px" }}>
-        <StatCard label="Total Cases" value={totalCases} tone="neutral" />
-        <StatCard label="Open Cases" value={openCases} tone="warning" />
-        <StatCard label="Closed Cases" value={closedCases} tone="success" />
-      </div>
-
-      <div className="grid grid-cols-2">
-        <div className="card">
-          <h3 style={{ marginTop: 0 }}>Recent Cases</h3>
-          {recentCases.length === 0 ? (
-            <p style={{ color: "var(--text-secondary)" }}>
-              No cases yet. Create your first case to get started.
-            </p>
-          ) : (
-            <table>
-              <thead>
-                <tr>
-                  <th>Case Name</th>
-                  <th>Status</th>
-                  <th>Created</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentCases.map((c) => (
-                  <tr
-                    key={c._id || c.id}
-                    onClick={() => navigate(`/cases/${c._id || c.id}`)}
-                    style={{ cursor: "pointer" }}
-                  >
-                    <td>{c.title || c.name}</td>
-                    <td>
-                      <span
-                        className={
-                          "badge " +
-                          (String(c.status).toLowerCase() === "open"
-                            ? "badge-warning"
-                            : "badge-success")
-                        }
-                      >
-                        {c.status || "Unknown"}
-                      </span>
-                    </td>
-                    <td>
-                      {c.created_at ? new Date(c.created_at).toLocaleDateString() : "-"}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-
-        <div className="card">
-          <h3 style={{ marginTop: 0 }}>Audit Activity</h3>
-          <StatCard label="Total Logged Actions" value={auditCount} tone="neutral" />
-          <button
-            className="btn btn-primary"
-            style={{ marginTop: "16px" }}
-            onClick={() => navigate("/audit-logs")}
-          >
-            View Full Audit Log
-          </button>
-        </div>
-      </div>
-    </div>
-  );
+  const navigate = useNavigate(); const [data, setData] = useState({ cases: [], audits: [] }); const [loading, setLoading] = useState(true); const [error, setError] = useState("");
+  const load = async () => { setLoading(true); setError(""); try { const [cases, audits] = await Promise.all([fetchCases(), fetchAuditLogs()]); setData({ cases, audits }); } catch { setError("Could not load dashboard data."); } finally { setLoading(false); } };
+  useEffect(() => { load(); }, []);
+  if (loading) return <Loading label="Loading investigation workspace…" />;
+  const { cases, audits } = data, recent = [...cases].sort((a,b) => new Date(b.created_at)-new Date(a.created_at)).slice(0,5);
+  const open = cases.filter(c => String(c.status).toLowerCase() === "open").length, closed = cases.filter(c => String(c.status).toLowerCase() === "closed").length;
+  return <section className="page-shell"><div className="page-heading"><div><p className="eyebrow">COMMAND CENTER</p><h1>Investigation Dashboard</h1><p>Monitor active matters, evidence, and chain-of-custody activity.</p></div><button className="btn btn-primary" onClick={() => navigate("/cases/create")}><Plus size={17}/> New Case</button></div>
+    {error && <div className="error-card">{error}<button className="btn btn-ghost" onClick={load}>Retry</button></div>}
+    <div className="stats-grid"><StatCard label="Total Cases" value={cases.length} icon={<BriefcaseBusiness/>} tone="neutral"/><StatCard label="Open Cases" value={open} icon={<FolderOpen/>} tone="warning"/><StatCard label="Closed Cases" value={closed} icon={<FileCheck2/>} tone="success"/><StatCard label="Total Audit Logs" value={audits.length} icon={<ShieldCheck/>} tone="neutral"/></div>
+    <div className="card table-card"><div className="card-heading"><div><h2>Recent Cases</h2><p>Your five most recently created investigations.</p></div><button className="text-button" onClick={() => navigate("/cases")}>View all</button></div>{recent.length ? <div className="table-wrap"><table><thead><tr><th>Case Name</th><th>Category</th><th>Status</th><th>Created</th></tr></thead><tbody>{recent.map(c => <tr key={c.case_id} onClick={() => navigate(`/cases/${c.case_id}`)} className="click-row"><td><strong>{c.title}</strong></td><td>{c.crime_category || "—"}</td><td><span className={`badge ${statusTone(c.status)}`}>{c.status}</span></td><td>{c.created_at ? new Date(c.created_at).toLocaleDateString() : "—"}</td></tr>)}</tbody></table></div> : <div className="empty-state"><FolderOpen size={32}/><p>No cases yet. Start a new investigation to populate your workspace.</p></div>}</div></section>;
 }

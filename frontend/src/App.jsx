@@ -1,11 +1,14 @@
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
+
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
+import PublicOnlyRoute from "./components/PublicOnlyRoute.jsx";
 import Navbar from "./components/Navbar.jsx";
 import Sidebar from "./components/Sidebar.jsx";
 
 import Landing from "./pages/Landing.jsx";
 import Login from "./pages/Login.jsx";
+import Signup from "./pages/Signup.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import Cases from "./pages/Cases.jsx";
 import CreateCase from "./pages/CreateCase.jsx";
@@ -22,9 +25,13 @@ function AppLayout({ children }) {
   return (
     <div className="app-shell">
       <Navbar />
+
       <div className="app-body">
         <Sidebar />
-        <main className="app-content">{children}</main>
+
+        <main className="app-content">
+          {children}
+        </main>
       </div>
     </div>
   );
@@ -33,9 +40,12 @@ function AppLayout({ children }) {
 export default function App() {
   return (
     <Routes>
-      <Route path="/" element={<Landing />} />
-      <Route path="/login" element={<Login />} />
-      
+      {/* Public Routes */}
+      <Route path="/" element={<PublicOnlyRoute><Landing /></PublicOnlyRoute>} />
+      <Route path="/login" element={<PublicOnlyRoute><Login /></PublicOnlyRoute>} />
+      <Route path="/signup" element={<PublicOnlyRoute><Signup /></PublicOnlyRoute>} />
+
+      {/* Dashboard */}
       <Route
         path="/dashboard"
         element={
@@ -46,6 +56,8 @@ export default function App() {
           </ProtectedRoute>
         }
       />
+
+      {/* Cases */}
       <Route
         path="/cases"
         element={
@@ -56,6 +68,7 @@ export default function App() {
           </ProtectedRoute>
         }
       />
+
       <Route
         path="/cases/create"
         element={
@@ -66,6 +79,7 @@ export default function App() {
           </ProtectedRoute>
         }
       />
+
       <Route
         path="/cases/:caseId"
         element={
@@ -76,6 +90,7 @@ export default function App() {
           </ProtectedRoute>
         }
       />
+
       <Route
         path="/cases/:caseId/evidence"
         element={
@@ -86,6 +101,7 @@ export default function App() {
           </ProtectedRoute>
         }
       />
+
       <Route
         path="/cases/:caseId/analysis"
         element={
@@ -96,6 +112,7 @@ export default function App() {
           </ProtectedRoute>
         }
       />
+
       <Route
         path="/cases/:caseId/timeline"
         element={
@@ -106,6 +123,7 @@ export default function App() {
           </ProtectedRoute>
         }
       />
+
       <Route
         path="/cases/:caseId/graph"
         element={
@@ -116,6 +134,7 @@ export default function App() {
           </ProtectedRoute>
         }
       />
+
       <Route
         path="/cases/:caseId/copilot"
         element={
@@ -126,6 +145,8 @@ export default function App() {
           </ProtectedRoute>
         }
       />
+
+      {/* Reports */}
       <Route
         path="/reports"
         element={
@@ -136,6 +157,8 @@ export default function App() {
           </ProtectedRoute>
         }
       />
+
+      {/* Audit Logs */}
       <Route
         path="/audit-logs"
         element={
@@ -146,7 +169,8 @@ export default function App() {
           </ProtectedRoute>
         }
       />
-      
+
+      {/* Unknown Route */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
