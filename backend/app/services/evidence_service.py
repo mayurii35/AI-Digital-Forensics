@@ -6,6 +6,8 @@ from pypdf import PdfReader
 from PIL import Image
 from PIL.ExifTags import TAGS, GPSTAGS
 from mutagen import File as MutagenFile
+from hachoir.parser import createParser
+from hachoir.metadata import extractMetadata
 
 
 def calculate_file_hash(file_path: str) -> str:
@@ -86,14 +88,9 @@ def extract_image_metadata(file_path: str) -> dict:
 
 def extract_basic_file_metadata(file_path: str, file_type: str) -> dict:
     """
-    Lightweight, dependency-free metadata for video evidence:
-    file size and MIME type. Does NOT extract duration, codec, or
-    resolution — that requires additional libraries (ffprobe/moviepy
-    for video) which are not currently installed.
-
-    NOTE: Audio files no longer use this function — they're routed to
-    extract_audio_metadata() instead, which uses mutagen for real
-    duration/bitrate/sample_rate/channels extraction.
+    Lightweight, dependency-free metadata fallback. Not used for
+    audio/video anymore now that mutagen (audio) and hachoir (video)
+    handle those with real duration/codec/resolution extraction.
     """
     path = Path(file_path)
     mime_type, _ = mimetypes.guess_type(file_path)
@@ -102,10 +99,6 @@ def extract_basic_file_metadata(file_path: str, file_type: str) -> dict:
         "file_type": file_type,
         "size_bytes": path.stat().st_size if path.is_file() else None,
         "mime_type": mime_type,
-        "note": (
-            "Duration/codec extraction not available — install "
-            "'ffprobe'/'moviepy' (video) to enable it."
-        ),
     }
     return metadata
 
@@ -166,6 +159,65 @@ def extract_audio_metadata(file_path: str) -> dict:
     return metadata
 
 
+def extract_video_metadata(file_path: str) -> dict:
+    """
+    Real forensic metadata extraction for video evidence using hachoir.
+    Supports MP4, MOV, AVI, MKV, WEBM.
+    Returns duration, resolution, codec, fps, bitrate.
+    """
+    path = Path(file_path)
+    mime_type, _ = mimetypes.guess_type(file_path)
+
+    metadata = {
+        "file_type": "video",
+        "size_bytes": path.stat().st_size if path.is_file() else None,
+        "mime_type": mime_type,
+        "duration": None,
+        "width": None,
+        "height": None,
+        "codec": None,
+        "fps": None,
+        "bitrate": None,
+        "format": path.suffix.lstrip(".").upper(),
+    }
+
+    try:
+        parser = createParser(str(file_path))
+        if parser is None:
+            metadata["error"] = "Unsupported or unreadable video file."
+            return metadata
+
+        with parser:
+            hachoir_metadata = extractMetadata(parser)
+
+        if hachoir_metadata is None:
+            metadata["error"] = "Could not extract metadata (file may be corrupted)."
+            return metadata
+
+        if hachoir_metadata.has("duration"):
+            metadata["duration"] = hachoir_metadata.get("duration").total_seconds()
+
+        if hachoir_metadata.has("width"):
+            metadata["width"] = hachoir_metadata.get("width")
+
+        if hachoir_metadata.has("height"):
+            metadata["height"] = hachoir_metadata.get("height")
+
+        if hachoir_metadata.has("frame_rate"):
+            metadata["fps"] = hachoir_metadata.get("frame_rate")
+
+        if hachoir_metadata.has("bit_rate"):
+            metadata["bitrate"] = hachoir_metadata.get("bit_rate")
+
+        if hachoir_metadata.has("compression"):
+            metadata["codec"] = str(hachoir_metadata.get("compression"))
+
+    except Exception as e:
+        metadata["error"] = f"Could not read video metadata: {str(e)}"
+
+    return metadata
+
+
 def extract_evidence_metadata(file_path: str) -> dict:
     """
     Dispatch to the right metadata extractor based on file extension.
@@ -181,7 +233,7 @@ def extract_evidence_metadata(file_path: str) -> dict:
         return extract_audio_metadata(file_path)
 
     if extension in VIDEO_EXTENSIONS:
-        return extract_basic_file_metadata(file_path, "video")
+        return extract_video_metadata(file_path)
 
     return {}
 
