@@ -1,0 +1,92 @@
+/* theme.css – Global design tokens for Dark Blue + White Cybersecurity SaaS */
+
+:root {
+  /* Typography */
+  --font-sans: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+  --font-serif: "Times New Roman", Times, serif;
+
+  /* Primary Palette: Navy & Slate */
+  --navy-deep: #0f172a;       /* Dark navy for text & high-contrast elements */
+  --navy-dark: #1e293b;       /* Dark slate */
+  --navy-surface: #ffffff;    /* Card surface */
+  --navy-border: #e2e8f0;     /* Border */
+
+  /* Surface & Canvas (Clean White & Slate) */
+  --bg-canvas: #f8fafc;       /* Crisp light slate canvas #F8FAFC */
+  --bg-card: #ffffff;         /* Pure white card surface #FFFFFF */
+  --bg-card-subtle: #f1f5f9;  /* Soft slate light-blue */
+  --bg-card-hover: #f8fafc;
+  --bg-active: #eff6ff;       /* Light ice blue selection */
+
+  /* Brand & Accent Blues */
+  --blue-primary: #2563eb;    /* Primary blue #2563EB */
+  --blue-hover: #1d4ed8;      /* Deep primary blue */
+  --blue-light: #3b82f6;      /* Bright blue */
+  --blue-subtle: #eff6ff;     /* Soft blue background */
+  --blue-border: #bfdbfe;     /* Soft blue border */
+  --blue-glow: rgba(37, 99, 235, 0.15);
+  
+  /* AI & Copilot Accents */
+  --ai-primary: #7c3aed;      /* AI / Copilot purple #7C3AED */
+  --ai-hover: #6d28d9;        /* Purple hover */
+  --ai-subtle: #f5f3ff;       /* Soft purple background */
+  --ai-border: #ddd6fe;       /* Soft purple border */
+  --ai-glow: rgba(124, 58, 237, 0.15);
+
+  --cyan-accent: #0284c7;     /* High-tech cyan */
+  --cyan-light: #e0f2fe;
+
+  /* Typography / Text Hierarchy (High Contrast) */
+  --text-primary: #0f172a;    /* Deep dark navy text #0F172A */
+  --text-secondary: #475569;  /* Secondary slate text #475569 */
+  --text-muted: #64748b;      /* Muted readable slate */
+  --text-inverse: #ffffff;    /* White text for dark buttons/badges */
+  --text-inverse-muted: #cbd5e1;
+
+  /* Semantic Status Colors */
+  --color-success: #10b981;
+  --color-success-bg: #ecfdf5;
+  --color-success-border: #a7f3d0;
+
+  --color-danger: #ef4444;
+  --color-danger-bg: #fef2f2;
+  --color-danger-border: #fecaca;
+
+  --color-warning: #f59e0b;
+  --color-warning-bg: #fffbeb;
+  --color-warning-border: #fde68a;
+
+  --color-info: #0284c7;
+  --color-info-bg: #f0f9ff;
+  --color-info-border: #bae6fd;
+
+  /* Borders & Radii */
+  --border-color: #e2e8f0;
+  --border-radius-sm: 6px;
+  --border-radius: 10px;
+  --border-radius-lg: 14px;
+  --border-radius-full: 9999px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(15, 23, 42, 0.05);
+  --shadow-md: 0 4px 12px -2px rgba(15, 23, 42, 0.08), 0 2px 6px -1px rgba(15, 23, 42, 0.04);
+  --shadow-lg: 0 10px 25px -3px rgba(15, 23, 42, 0.1), 0 4px 10px -2px rgba(15, 23, 42, 0.04);
+  --shadow-blue: 0 8px 24px -4px rgba(37, 99, 235, 0.25);
+  --shadow-ai: 0 8px 24px -4px rgba(124, 58, 237, 0.25);
+
+  /* Transitions */
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Base Body Styles */
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg-canvas);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}

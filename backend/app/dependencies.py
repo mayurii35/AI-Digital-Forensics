@@ -29,7 +29,7 @@ except ValueError:
 async def verify_firebase_token(credentials: HTTPAuthorizationCredentials = Security(security)):
     token = credentials.credentials
     try:
-        decoded_token = auth.verify_id_token(token)
+        decoded_token = auth.verify_id_token(token, clock_skew_seconds=60)
         return decoded_token
     except Exception as e:
         print("FIREBASE VERIFY ERROR:", repr(e))

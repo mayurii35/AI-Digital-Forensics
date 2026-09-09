@@ -84,3 +84,41 @@ def get_single_evidence(evidence_id: str, current_user: dict = Depends(verify_fi
     audit_collection.insert_one(audit_data)
 
     return evidence
+
+
+@router.delete("/{evidence_id}")
+def delete_evidence(evidence_id: str, current_user: dict = Depends(verify_firebase_token)):
+    """Delete a specific evidence item and all its analysis/tracker data."""
+    from app.database.mongodb import analysis_collection, text_tracker_collection
+    import os
+
+    evidence = evidence_collection.find_one({"evidence_id": evidence_id}, {"_id": 0})
+    if not evidence:
+        raise HTTPException(status_code=404, detail="Evidence not found")
+
+    # Remove physical file if it exists
+    file_path = evidence.get("file_path")
+    if file_path and os.path.exists(file_path):
+        try:
+            os.remove(file_path)
+        except Exception:
+            pass
+
+    # Delete all related records
+    analysis_collection.delete_many({"evidence_id": evidence_id})
+    text_tracker_collection.delete_many({"evidence_id": evidence_id})
+    evidence_collection.delete_one({"evidence_id": evidence_id})
+
+    # Audit log
+    audit_collection.insert_one({
+        "audit_id": str(uuid4()),
+        "case_id": evidence.get("case_id"),
+        "evidence_id": evidence_id,
+        "action": "Evidence Deleted",
+        "performed_by": _actor(current_user),
+        "description": f"Evidence '{evidence.get('evidence_name')}' was permanently deleted.",
+        "created_at": datetime.now(timezone.utc),
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    })
+
+    return {"message": f"Evidence '{evidence.get('evidence_name')}' deleted successfully."}

@@ -21,13 +21,25 @@ client.interceptors.request.use(async (config) => {
   return config;
 });
 
-// Handle unauthorized requests
+// Handle unauthorized requests gracefully with single token refresh retry
 client.interceptors.response.use(
   (res) => res,
   async (err) => {
-    if (err.response?.status === 401) {
-      await auth.signOut();
-      window.location.href = "/login";
+    const originalRequest = err.config;
+
+    // Attempt token refresh once if unauthorized and user exists
+    if (err.response?.status === 401 && originalRequest && !originalRequest._retry) {
+      originalRequest._retry = true;
+      try {
+        if (auth.currentUser) {
+          const freshToken = await auth.currentUser.getIdToken(true);
+          originalRequest.headers = originalRequest.headers || {};
+          originalRequest.headers.Authorization = "Bearer " + freshToken;
+          return client(originalRequest);
+        }
+      } catch (refreshErr) {
+        console.warn("Token refresh failed:", refreshErr);
+      }
     }
 
     return Promise.reject(err);
@@ -51,7 +63,17 @@ export async function createCase(caseData) {
   return res.data;
 }
 
+export async function deleteCase(caseId) {
+  const res = await client.delete(`/cases/${caseId}`);
+  return res.data;
+}
+
 // ==================== EVIDENCE ====================
+
+export async function deleteEvidence(evidenceId) {
+  const res = await client.delete(`/evidence/${evidenceId}`);
+  return res.data;
+}
 
 export async function uploadEvidence(
   caseId,
@@ -93,7 +115,18 @@ export async function verifyEvidenceHash(evidenceId) {
   const res = await client.get(
     `/audit/evidence/${evidenceId}/verify-hash`
   );
+  return res.data;
+}
 
+// ==================== TEXT TRACKER (CORE FEATURE) ====================
+
+export async function runTextTracker(evidenceId) {
+  const res = await client.post(`/text-tracker/${evidenceId}`);
+  return res.data;
+}
+
+export async function fetchTextTrackerResult(evidenceId) {
+  const res = await client.get(`/text-tracker/${evidenceId}`);
   return res.data;
 }
 
@@ -126,9 +159,10 @@ export async function fetchCaseAnalysisDashboard(caseId) {
 
 // ==================== COPILOT / GENAI ====================
 
-export async function askCopilot(caseId, question) {
+export async function askCopilot(caseId, question, sessionId = null) {
   const res = await client.post(`/copilot/${caseId}/ask`, {
     question,
+    session_id: sessionId || undefined,
   });
 
   return res.data;
@@ -157,6 +191,9 @@ export async function fetchReportPdf(caseId) {
 
 export async function fetchAuditLogs() {
   const res = await client.get("/audit");
+  if (Array.isArray(res.data)) {
+    return res.data;
+  }
   return res.data.audit_logs || [];
 }
 
