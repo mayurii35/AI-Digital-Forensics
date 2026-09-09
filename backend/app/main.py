@@ -27,8 +27,8 @@ app.add_middleware(
         "http://127.0.0.1:3000",
         "http://localhost:5173",
         "http://127.0.0.1:5173",
-        # Add your production frontend URL after deployment
-        # Example: "https://ai-forensics-frontend.onrender.com",
+        "https://ai-forensics-frontend.onrender.com",
+        "https://ai-digital-forensics-frontend.onrender.com",
     ],
     allow_credentials=True,
     allow_methods=["*"],
