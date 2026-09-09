@@ -14,12 +14,14 @@ import Cases from "./pages/Cases.jsx";
 import CreateCase from "./pages/CreateCase.jsx";
 import CaseDetails from "./pages/CaseDetails.jsx";
 import Evidence from "./pages/Evidence.jsx";
+import TextTracker from "./pages/TextTracker.jsx";
 import Analysis from "./pages/Analysis.jsx";
 import Timeline from "./pages/Timeline.jsx";
 import EvidenceGraph from "./pages/EvidenceGraph.jsx";
 import Copilot from "./pages/Copilot.jsx";
 import Reports from "./pages/Reports.jsx";
 import AuditLogs from "./pages/AuditLogs.jsx";
+import NetworkForensics from "./pages/NetworkForensics.jsx";
 
 function AppLayout({ children }) {
   return (
@@ -41,7 +43,7 @@ export default function App() {
   return (
     <Routes>
       {/* Public Routes */}
-      <Route path="/" element={<PublicOnlyRoute><Landing /></PublicOnlyRoute>} />
+      <Route path="/" element={<Landing />} />
       <Route path="/login" element={<PublicOnlyRoute><Login /></PublicOnlyRoute>} />
       <Route path="/signup" element={<PublicOnlyRoute><Signup /></PublicOnlyRoute>} />
 
@@ -102,6 +104,18 @@ export default function App() {
         }
       />
 
+      {/* Core Text Tracker Workspace */}
+      <Route
+        path="/cases/:caseId/text-tracker"
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <TextTracker />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+
       <Route
         path="/cases/:caseId/analysis"
         element={
@@ -141,6 +155,18 @@ export default function App() {
           <ProtectedRoute>
             <AppLayout>
               <Copilot />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Network Forensics */}
+      <Route
+        path="/cases/:caseId/network-forensics"
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <NetworkForensics />
             </AppLayout>
           </ProtectedRoute>
         }

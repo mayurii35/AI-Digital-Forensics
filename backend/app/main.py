@@ -8,6 +8,8 @@ from app.routes.evidence_upload import router as evidence_upload_router
 from app.routes.ai_analysis import router as ai_analysis_router
 from app.routes.reports import router as reports_router
 from app.routes.copilot import router as copilot_router
+from app.routes.text_tracker import router as text_tracker_router
+from app.routes.network_forensics import router as network_forensics_router
 from app.dependencies import verify_firebase_token
 
 app = FastAPI(
@@ -23,6 +25,8 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:3000",
         "http://127.0.0.1:3000",
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -37,6 +41,8 @@ app.include_router(evidence_upload_router, dependencies=[Depends(verify_firebase
 app.include_router(ai_analysis_router, dependencies=[Depends(verify_firebase_token)])
 app.include_router(reports_router, dependencies=[Depends(verify_firebase_token)])
 app.include_router(copilot_router, dependencies=[Depends(verify_firebase_token)])
+app.include_router(text_tracker_router, dependencies=[Depends(verify_firebase_token)])
+app.include_router(network_forensics_router, dependencies=[Depends(verify_firebase_token)])
 
 
 @app.get("/")

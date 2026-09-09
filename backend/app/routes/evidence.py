@@ -1,9 +1,12 @@
 from fastapi import APIRouter, HTTPException, Depends
+from fastapi.responses import FileResponse
 from app.models.evidence import EvidenceCreate
 from app.database.mongodb import evidence_collection, audit_collection
 from app.dependencies import verify_firebase_token
 from datetime import datetime, timezone
 from uuid import uuid4
+import mimetypes
+from pathlib import Path
 
 
 router = APIRouter(
@@ -84,3 +87,77 @@ def get_single_evidence(evidence_id: str, current_user: dict = Depends(verify_fi
     audit_collection.insert_one(audit_data)
 
     return evidence
+
+
+@router.delete("/{evidence_id}")
+def delete_evidence(evidence_id: str, current_user: dict = Depends(verify_firebase_token)):
+    """Delete a specific evidence item and all its analysis/tracker data."""
+    from app.database.mongodb import analysis_collection, text_tracker_collection
+    import os
+
+    evidence = evidence_collection.find_one({"evidence_id": evidence_id}, {"_id": 0})
+    if not evidence:
+        raise HTTPException(status_code=404, detail="Evidence not found")
+
+    # Remove physical file if it exists
+    file_path = evidence.get("file_path")
+    if file_path and os.path.exists(file_path):
+        try:
+            os.remove(file_path)
+        except Exception:
+            pass
+
+    # Delete all related records
+    analysis_collection.delete_many({"evidence_id": evidence_id})
+    text_tracker_collection.delete_many({"evidence_id": evidence_id})
+    evidence_collection.delete_one({"evidence_id": evidence_id})
+
+    # Audit log
+    audit_collection.insert_one({
+        "audit_id": str(uuid4()),
+        "case_id": evidence.get("case_id"),
+        "evidence_id": evidence_id,
+        "action": "Evidence Deleted",
+        "performed_by": _actor(current_user),
+        "description": f"Evidence '{evidence.get('evidence_name')}' was permanently deleted.",
+        "created_at": datetime.now(timezone.utc),
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    })
+
+    return {"message": f"Evidence '{evidence.get('evidence_name')}' deleted successfully."}
+
+
+@router.get("/{evidence_id}/download")
+def download_evidence(evidence_id: str, current_user: dict = Depends(verify_firebase_token)):
+    """Stream the physical evidence file so the browser can view or download it."""
+
+    evidence = evidence_collection.find_one({"evidence_id": evidence_id}, {"_id": 0})
+    if not evidence:
+        raise HTTPException(status_code=404, detail="Evidence not found")
+
+    file_path = evidence.get("file_path")
+    if not file_path or not Path(file_path).is_file():
+        raise HTTPException(status_code=404, detail="Evidence file is no longer available on disk")
+
+    original_name = evidence.get("evidence_name", Path(file_path).name)
+    mime_type, _ = mimetypes.guess_type(original_name)
+    mime_type = mime_type or "application/octet-stream"
+
+    # Audit log the access
+    audit_collection.insert_one({
+        "audit_id": str(uuid4()),
+        "case_id": evidence.get("case_id"),
+        "evidence_id": evidence_id,
+        "action": "Evidence Viewed / Downloaded",
+        "performed_by": _actor(current_user),
+        "description": f"Evidence file '{original_name}' was viewed/downloaded.",
+        "created_at": datetime.now(timezone.utc),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    })
+
+    return FileResponse(
+        path=file_path,
+        media_type=mime_type,
+        filename=original_name,
+        headers={"Content-Disposition": f'inline; filename="{original_name}"'},
+    )

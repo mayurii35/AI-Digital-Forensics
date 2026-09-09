@@ -1,6 +1,7 @@
 import hashlib
 import mimetypes
 from pathlib import Path
+
 import pandas as pd
 from pypdf import PdfReader
 from PIL import Image
@@ -8,7 +9,6 @@ from PIL.ExifTags import TAGS, GPSTAGS
 from mutagen import File as MutagenFile
 from hachoir.parser import createParser
 from hachoir.metadata import extractMetadata
-
 
 def calculate_file_hash(file_path: str) -> str:
     sha256 = hashlib.sha256()
@@ -19,97 +19,105 @@ def calculate_file_hash(file_path: str) -> str:
 
     return sha256.hexdigest()
 
-
 def get_file_extension(filename: str) -> str:
     return Path(filename).suffix.lower()
 
+IMAGE_EXTENSIONS = {
+    ".png",
+    ".jpg",
+    ".jpeg",
+    ".gif",
+    ".webp",
+    ".bmp",
+    ".tiff"
+}
 
-IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".tiff"}
-AUDIO_EXTENSIONS = {".mp3", ".wav", ".m4a", ".flac", ".ogg"}
-VIDEO_EXTENSIONS = {".mp4", ".mov", ".avi", ".mkv", ".webm"}
+AUDIO_EXTENSIONS = {
+    ".mp3",
+    ".wav",
+    ".m4a",
+    ".flac",
+    ".ogg"
+}
 
+VIDEO_EXTENSIONS = {
+    ".mp4",
+    ".mov",
+    ".avi",
+    ".mkv",
+    ".webm"
+}
 
 def _extract_gps(exif_data: dict):
-    """Convert raw EXIF GPS IFD into a readable lat/lon dict, if present."""
     gps_info = exif_data.get("GPSInfo")
+
     if not gps_info:
         return None
 
-    gps_readable = {}
+    gps_data = {}
+
     for key, value in gps_info.items():
         tag_name = GPSTAGS.get(key, key)
-        gps_readable[tag_name] = value
+        gps_data[tag_name] = str(value)
 
-    return gps_readable or None
-
+    return gps_data
 
 def extract_image_metadata(file_path: str) -> dict:
-    """
-    Real forensic metadata extraction for image evidence using Pillow.
-    Returns dimensions, format, color mode, and any embedded EXIF data
-    (camera model, timestamps, GPS coordinates if present).
-    """
     metadata = {
         "file_type": "image",
         "width": None,
         "height": None,
         "format": None,
         "mode": None,
-        "exif": {},
+        "exif": {}
     }
 
     try:
-        with Image.open(file_path) as img:
-            metadata["width"] = img.width
-            metadata["height"] = img.height
-            metadata["format"] = img.format
-            metadata["mode"] = img.mode
+        with Image.open(file_path) as image:
+            metadata["width"] = image.width
+            metadata["height"] = image.height
+            metadata["format"] = image.format
+            metadata["mode"] = image.mode
 
-            raw_exif = img.getexif()
-            if raw_exif:
-                exif_readable = {}
-                for tag_id, value in raw_exif.items():
+            exif_data = image.getexif()
+
+            if exif_data:
+                exif = {}
+
+                for tag_id, value in exif_data.items():
                     tag_name = TAGS.get(tag_id, tag_id)
-                    # Skip huge/binary blobs that aren't useful as text
+
                     if isinstance(value, bytes):
                         continue
-                    exif_readable[str(tag_name)] = str(value)
 
-                gps = _extract_gps(raw_exif)
+                    exif[str(tag_name)] = str(value)
+
+                gps = _extract_gps(exif_data)
+
                 if gps:
-                    exif_readable["GPS"] = str(gps)
+                    exif["GPS"] = gps
 
-                metadata["exif"] = exif_readable
-    except Exception as e:
-        metadata["error"] = f"Could not read image metadata: {str(e)}"
+                metadata["exif"] = exif
+
+    except Exception as error:
+        metadata["error"] = str(error)
 
     return metadata
-
 
 def extract_basic_file_metadata(file_path: str, file_type: str) -> dict:
-    """
-    Lightweight, dependency-free metadata fallback. Not used for
-    audio/video anymore now that mutagen (audio) and hachoir (video)
-    handle those with real duration/codec/resolution extraction.
-    """
     path = Path(file_path)
+
     mime_type, _ = mimetypes.guess_type(file_path)
 
-    metadata = {
+    return {
         "file_type": file_type,
         "size_bytes": path.stat().st_size if path.is_file() else None,
-        "mime_type": mime_type,
+        "mime_type": mime_type
     }
-    return metadata
-
 
 def extract_audio_metadata(file_path: str) -> dict:
-    """
-    Real forensic metadata extraction for audio evidence using mutagen.
-    Supports MP3, WAV, M4A, FLAC, OGG.
-    Returns duration, bitrate, sample_rate, channels, and format/codec.
-    """
     path = Path(file_path)
+
     mime_type, _ = mimetypes.guess_type(file_path)
 
     metadata = {
@@ -120,7 +128,7 @@ def extract_audio_metadata(file_path: str) -> dict:
         "bitrate": None,
         "sample_rate": None,
         "channels": None,
-        "format": None,
+        "format": path.suffix.lstrip(".").upper()
     }
 
     try:
@@ -137,35 +145,14 @@ def extract_audio_metadata(file_path: str) -> dict:
         metadata["sample_rate"] = getattr(info, "sample_rate", None)
         metadata["channels"] = getattr(info, "channels", None)
 
-        # WAV फाइल्समध्ये अनेकदा info.bitrate थेट मिळत नाही,
-        # म्हणून sample_rate * bits_per_sample * channels वरून calculate करतो
-        if not metadata["bitrate"] and metadata["sample_rate"] and metadata["channels"]:
-            bits_per_sample = getattr(info, "bits_per_sample", 16)
-            metadata["bitrate"] = (
-                metadata["sample_rate"] * bits_per_sample * metadata["channels"]
-            )
-
-        codec = getattr(info, "codec", None)
-
-        metadata["format"] = (
-            codec
-            if codec
-            else path.suffix.lstrip(".").upper()
-        )
-
-    except Exception as e:
-        metadata["error"] = f"Could not read audio metadata: {str(e)}"
+    except Exception as error:
+        metadata["error"] = str(error)
 
     return metadata
 
-
 def extract_video_metadata(file_path: str) -> dict:
-    """
-    Real forensic metadata extraction for video evidence using hachoir.
-    Supports MP4, MOV, AVI, MKV, WEBM.
-    Returns duration, resolution, codec, fps, bitrate.
-    """
     path = Path(file_path)
+
     mime_type, _ = mimetypes.guess_type(file_path)
 
     metadata = {
@@ -178,24 +165,26 @@ def extract_video_metadata(file_path: str) -> dict:
         "codec": None,
         "fps": None,
         "bitrate": None,
-        "format": path.suffix.lstrip(".").upper(),
+        "format": path.suffix.lstrip(".").upper()
     }
 
     try:
         parser = createParser(str(file_path))
+
         if parser is None:
             metadata["error"] = "Unsupported or unreadable video file."
             return metadata
 
-        with parser:
-            hachoir_metadata = extractMetadata(parser)
+        hachoir_metadata = extractMetadata(parser)
 
         if hachoir_metadata is None:
-            metadata["error"] = "Could not extract metadata (file may be corrupted)."
+            metadata["error"] = "Could not extract video metadata."
             return metadata
 
         if hachoir_metadata.has("duration"):
-            metadata["duration"] = hachoir_metadata.get("duration").total_seconds()
+            metadata["duration"] = (
+                hachoir_metadata.get("duration").total_seconds()
+            )
 
         if hachoir_metadata.has("width"):
             metadata["width"] = hachoir_metadata.get("width")
@@ -210,20 +199,16 @@ def extract_video_metadata(file_path: str) -> dict:
             metadata["bitrate"] = hachoir_metadata.get("bit_rate")
 
         if hachoir_metadata.has("compression"):
-            metadata["codec"] = str(hachoir_metadata.get("compression"))
+            metadata["codec"] = str(
+                hachoir_metadata.get("compression")
+            )
 
-    except Exception as e:
-        metadata["error"] = f"Could not read video metadata: {str(e)}"
+    except Exception as error:
+        metadata["error"] = str(error)
 
     return metadata
 
-
 def extract_evidence_metadata(file_path: str) -> dict:
-    """
-    Dispatch to the right metadata extractor based on file extension.
-    Returns {} for file types with no dedicated extractor (falls back
-    to text extraction only).
-    """
     extension = get_file_extension(file_path)
 
     if extension in IMAGE_EXTENSIONS:
@@ -237,12 +222,10 @@ def extract_evidence_metadata(file_path: str) -> dict:
 
     return {}
 
-
 def extract_text_from_file(file_path: str) -> str:
-
     extension = get_file_extension(file_path)
 
-    if extension in [".txt", ".log"]:
+    if extension in [".txt", ".log", ".json", ".xml", ".ini", ".cfg", ".conf", ".md"]:
         with open(
             file_path,
             "r",
@@ -252,27 +235,62 @@ def extract_text_from_file(file_path: str) -> str:
             return file.read()
 
     if extension == ".pdf":
-        reader = PdfReader(file_path)
-
-        text = ""
-
-        for page in reader.pages:
-            page_text = page.extract_text()
-
-            if page_text:
-                text += page_text + "\n"
-
-        return text
+        try:
+            reader = PdfReader(file_path)
+            text = ""
+            for page in reader.pages:
+                page_text = page.extract_text()
+                if page_text:
+                    text += page_text + "\n"
+            return text
+        except Exception as e:
+            return f"[Error reading PDF: {e}]"
 
     if extension == ".csv":
-        dataframe = pd.read_csv(file_path)
+        try:
+            dataframe = pd.read_csv(file_path)
+            return dataframe.to_string(index=False)
+        except Exception:
+            with open(file_path, "r", encoding="utf-8", errors="ignore") as file:
+                return file.read()
 
-        return dataframe.to_string(index=False)
+    if extension in [".docx", ".doc"]:
+        try:
+            import docx
+            doc = docx.Document(file_path)
+            paragraphs = [p.text for p in doc.paragraphs if p.text.strip()]
+            for table in doc.tables:
+                for row in table.rows:
+                    row_data = [cell.text.strip() for cell in row.cells]
+                    paragraphs.append(" | ".join(row_data))
+            return "\n".join(paragraphs)
+        except Exception as e:
+            return f"[Error reading DOCX: {e}]"
 
     return ""
 
+def extract_text_lines(file_path: str) -> list[dict]:
+    full_text = extract_text_from_file(file_path)
+    if not full_text:
+        return []
+    lines = full_text.splitlines()
+    return [{"line": idx + 1, "text": line} for idx, line in enumerate(lines)]
 
 def verify_file_hash(file_path: str, stored_hash: str) -> bool:
     current_hash = calculate_file_hash(file_path)
 
     return current_hash == stored_hash
+
+
+# Example usage / test
+if __name__ == "__main__":
+    # Replace with your actual file path and stored hash
+    test_file = "example_evidence.mp4"
+    stored_hash = "YOUR_STORED_SHA256_HASH_HERE"
+
+    is_verified = verify_file_hash(test_file, stored_hash)
+
+    if is_verified:
+        print("Integrity: Verified ✅")
+    else:
+        print("Integrity: Failed ❌")

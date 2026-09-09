@@ -9,8 +9,10 @@ from app.database.mongodb import (
 )
 
 from app.services.ai_service import analyze_evidence
-from app.services.evidence_service import extract_text_from_file
-from app.ml.suspicious_detector import detect_suspicious_indicators
+from app.services.evidence_service import (
+    extract_text_from_file,
+    extract_evidence_metadata
+)
 
 from datetime import datetime, timezone
 from uuid import uuid4
@@ -43,9 +45,11 @@ def analyze_single_evidence(evidence_id: str, current_user: dict = Depends(verif
     file_path = evidence.get("file_path")
 
     extracted_text = ""
+    file_metadata = {}
 
     if file_path:
         extracted_text = extract_text_from_file(file_path)
+        file_metadata = extract_evidence_metadata(file_path)
 
     evidence_text = f"""
 Evidence Name: {evidence.get("evidence_name")}
@@ -58,20 +62,25 @@ Extracted Evidence Content:
 {extracted_text if extracted_text else "No text content could be extracted from this file type."}
 """
 
-    suspicious_indicators = detect_suspicious_indicators(
-        evidence_text
-    )
+    analysis = analyze_evidence(evidence_text, file_metadata)
 
-    analysis = analyze_evidence(evidence_text)
+    risk_info = analysis.get("ml", {})
+    risk_level = analysis.get("risk_level", risk_info.get("risk_level", "Low"))
+    risk_score = analysis.get("risk_score", risk_info.get("risk_score", 0))
+    indicators = analysis.get("suspicious_indicators", risk_info.get("suspicious_indicators", []))
+    recommendations = analysis.get("recommendations", [])
 
     analysis_data = {
         "analysis_id": str(uuid4()),
         "evidence_id": evidence_id,
         "case_id": evidence.get("case_id"),
         "analysis": analysis,
-        "risk_level": suspicious_indicators["risk_level"],
-        "indicator_count": suspicious_indicators["indicator_count"],
-        "suspicious_indicators": suspicious_indicators["indicators"],
+        "risk_level": risk_level,
+        "risk_score": risk_score,
+        "indicator_count": analysis.get("indicator_count", len(indicators)),
+        "suspicious_indicators": indicators,
+        "recommendations": recommendations,
+        "extracted_text": extracted_text[:10000] if extracted_text else "",
         "created_at": datetime.now(timezone.utc)
     }
 
@@ -86,13 +95,15 @@ Extracted Evidence Content:
     audit_data = {
         "audit_id": str(uuid4()),
         "case_id": evidence.get("case_id"),
+        "evidence_id": evidence_id,
         "action": "AI Evidence Analysis",
-        "performed_by": "AI System",
+        "performed_by": current_user.get("email") or current_user.get("uid") or "AI System",
         "description": (
             f"AI analysis completed for evidence "
-            f"'{evidence.get('evidence_name')}'."
+            f"'{evidence.get('evidence_name') or evidence.get('file_name')}'. Risk: {risk_level} ({risk_score}/100)."
         ),
-        "created_at": datetime.now(timezone.utc)
+        "created_at": datetime.now(timezone.utc),
+        "timestamp": datetime.now(timezone.utc).isoformat()
     }
 
     audit_collection.insert_one(audit_data)
@@ -101,17 +112,17 @@ Extracted Evidence Content:
         "message": "Evidence analyzed successfully",
         "evidence_id": evidence_id,
         "analysis_id": analysis_data["analysis_id"],
-        "risk_level": suspicious_indicators["risk_level"],
-        "indicator_count": suspicious_indicators["indicator_count"],
-        "suspicious_indicators": suspicious_indicators["indicators"]
+        "risk_level": risk_level,
+        "risk_score": risk_score,
+        "indicator_count": analysis_data["indicator_count"],
+        "suspicious_indicators": indicators,
+        "recommendations": recommendations
     }
-    
-    if isinstance(analysis, dict):
-        result.update(analysis)
-    else:
-        result["analysis"] = analysis
+
+    result.update(analysis)
 
     return result
+
 
 
 # =========================================================
