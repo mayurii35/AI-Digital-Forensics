@@ -1,4 +1,5 @@
 import os
+import json
 import firebase_admin
 from firebase_admin import credentials, auth
 from fastapi import Request, HTTPException, Security
@@ -6,25 +7,37 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 security = HTTPBearer()
 
-# Path to the Firebase service account key, relative to the backend/ directory
-# (i.e. backend/firebase-service-account.json).
-_SERVICE_ACCOUNT_PATH = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-    "firebase-service-account.json",
-)
-
 # Initialize Firebase Admin
 try:
     firebase_admin.get_app()
 except ValueError:
-    if not os.path.isfile(_SERVICE_ACCOUNT_PATH):
-        raise RuntimeError(
-            "Firebase service account file not found at "
-            f"'{_SERVICE_ACCOUNT_PATH}'. Download it from Firebase Console > "
-            "Project Settings > Service Accounts, and save it there."
+    # Try to load from environment variable first (for production deployment)
+    firebase_creds_json = os.getenv("FIREBASE_SERVICE_ACCOUNT_JSON")
+    
+    if firebase_creds_json:
+        # Production: Load from environment variable
+        try:
+            service_account_info = json.loads(firebase_creds_json)
+            cred = credentials.Certificate(service_account_info)
+            firebase_admin.initialize_app(cred)
+        except json.JSONDecodeError as e:
+            raise RuntimeError(f"Invalid FIREBASE_SERVICE_ACCOUNT_JSON format: {e}")
+    else:
+        # Development: Load from file
+        _SERVICE_ACCOUNT_PATH = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            "firebase-service-account.json",
         )
-    cred = credentials.Certificate(_SERVICE_ACCOUNT_PATH)
-    firebase_admin.initialize_app(cred)
+        
+        if not os.path.isfile(_SERVICE_ACCOUNT_PATH):
+            raise RuntimeError(
+                "Firebase service account not configured. Either:\n"
+                f"1. Set FIREBASE_SERVICE_ACCOUNT_JSON environment variable, OR\n"
+                f"2. Place firebase-service-account.json at '{_SERVICE_ACCOUNT_PATH}'"
+            )
+        
+        cred = credentials.Certificate(_SERVICE_ACCOUNT_PATH)
+        firebase_admin.initialize_app(cred)
 
 async def verify_firebase_token(credentials: HTTPAuthorizationCredentials = Security(security)):
     token = credentials.credentials
