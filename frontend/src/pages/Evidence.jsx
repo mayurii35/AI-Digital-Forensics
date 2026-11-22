@@ -135,10 +135,21 @@ export default function Evidence() {
     setViewerEvidence({ ev, objectUrl: null, textContent: null, mimeType: null });
     try {
       const blob = await fetchEvidenceFile(ev.evidence_id);
-      const mimeType = blob.type || "application/octet-stream";
+      let mimeType = blob.type;
+      const fileName = (ev.evidence_name || ev.file_name || "").toLowerCase();
+      
+      if (!mimeType || mimeType === "application/octet-stream") {
+        if (fileName.endsWith(".pdf")) mimeType = "application/pdf";
+        else if (fileName.endsWith(".png")) mimeType = "image/png";
+        else if (fileName.endsWith(".jpg") || fileName.endsWith(".jpeg")) mimeType = "image/jpeg";
+        else if (fileName.endsWith(".gif")) mimeType = "image/gif";
+        else if (fileName.endsWith(".webp")) mimeType = "image/webp";
+        else mimeType = "application/octet-stream";
+      }
+
       const objectUrl = URL.createObjectURL(blob);
       let textContent = null;
-      if (mimeType.startsWith("text/") || [".txt", ".log", ".csv", ".json", ".xml", ".md", ".ini", ".cfg"].some(ext => (ev.evidence_name || "").endsWith(ext))) {
+      if (mimeType.startsWith("text/") || [".txt", ".log", ".csv", ".json", ".xml", ".md", ".ini", ".cfg", ".py", ".js", ".jsx"].some(ext => fileName.endsWith(ext))) {
         textContent = await blob.text();
       }
       setViewerEvidence({ ev, objectUrl, textContent, mimeType });

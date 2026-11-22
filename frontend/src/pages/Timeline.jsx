@@ -125,13 +125,15 @@ export default function Timeline() {
 
       {/* FILTER CONTROLS */}
       <div className="card timeline-controls-bar">
-        <div className="search-box">
-          <Search size={15} className="text-secondary" />
+        <div className="cases-modern-search-wrap" style={{ minWidth: "300px" }}>
+          <Search size={18} className="search-icon" />
           <input
             type="text"
             placeholder="Search timeline events or descriptions..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
+            className="cases-modern-search-input"
+            style={{ padding: "8px 12px", fontSize: "0.95rem" }}
           />
         </div>
 

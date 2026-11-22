@@ -243,7 +243,7 @@ def detect_suspicious_indicators(
     }
 
 from app.ml.threat_classifier import classify_threat
-from app.ml.image_forensics import perform_error_level_analysis
+from app.ml.image_forensics import perform_error_level_analysis, classify_image_authenticity
 
 def analyze_evidence(
     evidence_text: str,
@@ -262,6 +262,9 @@ def analyze_evidence(
     if file_ext in [".jpg", ".jpeg", ".png", ".webp", ".bmp", ".tiff"]:
         is_image = True
         deepfake_result = perform_error_level_analysis(file_path)
+        # ELA is a pixel-forensics heuristic; this separately runs an actual
+        # pretrained vision transformer for real-vs-deepfake face screening.
+        deepfake_result["image_model"] = classify_image_authenticity(file_path)
     else:
         deepfake_result = {
             "status": "non_image_artifact",

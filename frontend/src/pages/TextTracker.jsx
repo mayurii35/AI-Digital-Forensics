@@ -306,11 +306,13 @@ export default function TextTracker() {
             </div>
 
             {/* In-Text Search Bar */}
-            <div className="editor-search-bar">
-              <Search size={14} className="search-icon text-secondary" />
+            <div className="cases-modern-search-wrap" style={{ minWidth: "300px" }}>
+              <Search size={18} className="search-icon" />
               <input
                 type="text"
                 placeholder="Search raw text (regex, IPs, keywords)..."
+                className="cases-modern-search-input"
+                style={{ padding: "8px 12px", fontSize: "0.95rem" }}
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);

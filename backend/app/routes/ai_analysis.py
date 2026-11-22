@@ -50,6 +50,9 @@ def analyze_single_evidence(evidence_id: str, current_user: dict = Depends(verif
     if file_path:
         extracted_text = extract_text_from_file(file_path)
         file_metadata = extract_evidence_metadata(file_path)
+        # The AI service uses the stored path extension to decide whether to
+        # run image forensics. Keep it alongside the extracted file metadata.
+        file_metadata["file_path"] = file_path
 
     evidence_text = f"""
 Evidence Name: {evidence.get("evidence_name")}

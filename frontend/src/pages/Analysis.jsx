@@ -142,6 +142,7 @@ export default function Analysis() {
   const elaIsTampered = deepfakeResult?.is_tampered || false;
   const elaMethod = deepfakeResult?.method || "";
   const elaDetails = deepfakeResult?.details || {};
+  const imageModel = deepfakeResult?.image_model || {};
 
   return (
     <section className="page-shell">
@@ -489,12 +490,12 @@ export default function Analysis() {
             </div>
           )}
 
-          {/* TAB 4: DEEP LEARNING (ELA) */}
+          {/* TAB 4: DEEP LEARNING AND ELA */}
           {tab === "Deep Learning" && (
             <div className="results-tab-content">
               <div className="section-title-row">
                 <Eye size={18} className="text-accent" />
-                <h3>Deep Learning — Image Forgery Detection (ELA)</h3>
+                <h3>Deep Learning — Face Image Authenticity Screening</h3>
               </div>
 
               {elaStatus === "non_image_artifact" ? (
@@ -523,6 +524,33 @@ export default function Analysis() {
               ) : (
                 <div className="ela-result-grid">
 
+                  <div className="ml-result-card" style={{ gridColumn: "1 / -1" }}>
+                    <div className="section-title-row" style={{ marginBottom: 8 }}>
+                      <BrainCircuit size={16} className="text-accent" />
+                      <h4>Vision Transformer Result</h4>
+                    </div>
+                    {imageModel.status === "analysis_complete" ? (
+                      <>
+                        <h3 className={imageModel.verdict === "suspected_fake" ? "text-danger" : imageModel.verdict === "likely_real" ? "text-success" : "text-warning"}>
+                          {imageModel.verdict === "suspected_fake"
+                            ? "POSSIBLE DEEPFAKE DETECTED"
+                            : imageModel.verdict === "likely_real"
+                              ? "MODEL CLASSIFIED AS REAL"
+                              : `MODEL LABEL: ${imageModel.predicted_label || "Unknown"}`}
+                        </h3>
+                        <p className="muted">
+                          Predicted class: <strong>{imageModel.predicted_label}</strong> · Confidence: <strong>{imageModel.confidence}%</strong>
+                        </p>
+                        <p className="muted">{imageModel.limitation}</p>
+                      </>
+                    ) : (
+                      <p className="muted">
+                        Deep learning model did not run ({imageModel.status || "not available"}): {imageModel.error || "Run AI Analysis after installing the model dependencies."}
+                      </p>
+                    )}
+                    <p className="muted" style={{ marginTop: 8 }}>Model: {imageModel.model || "agasta/virtus"}</p>
+                  </div>
+
                   {/* Tamper Status Banner */}
                   <div className={`ela-status-banner ${elaIsTampered ? "ela-tampered" : "ela-clean"}`}>
                     <div className="ela-status-icon">
@@ -532,12 +560,12 @@ export default function Analysis() {
                     </div>
                     <div className="ela-status-body">
                       <h2 className={elaIsTampered ? "text-danger" : "text-success"}>
-                        {elaIsTampered ? "IMAGE TAMPERING DETECTED" : "IMAGE APPEARS AUTHENTIC"}
+                        {elaIsTampered ? "ELA FOUND POSSIBLE TAMPERING SIGNS" : "NO MAJOR ELA ANOMALIES"}
                       </h2>
                       <p className="muted">
                         {elaIsTampered
                           ? "ELA pixel residual analysis detected anomalous compression artifacts indicative of digital manipulation."
-                          : "ELA analysis found no significant compression anomalies. Image appears to be in its original state."}
+                          : "ELA found no significant compression anomalies. This result alone cannot prove the image is authentic."}
                       </p>
                     </div>
                     <div className="ela-score-circle">
@@ -565,7 +593,7 @@ export default function Analysis() {
                     <div className="ml-result-card" style={{ gridColumn: "1 / -1" }}>
                       <div className="section-title-row" style={{ marginBottom: 12 }}>
                         <BarChart2 size={16} className="text-accent" />
-                        <h4>Pixel Residual Analysis Metrics</h4>
+                      <h4>ELA Pixel Residual Metrics</h4>
                       </div>
                       <div className="ela-metrics-grid">
                         {Object.entries(elaDetails).map(([key, val]) => (

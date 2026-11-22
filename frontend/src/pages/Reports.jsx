@@ -226,11 +226,11 @@ export default function Reports() {
 
               <button
                 className="ui-button ui-button-primary"
-                onClick={downloadPdf}
-                disabled={busy === "pdf"}
+                onClick={() => downloadPdf()}
+                disabled={busy === `pdf-${selected?.case_id}`}
               >
                 <Download size={15} />
-                {busy === "pdf" ? "Compiling PDF…" : "Download Official PDF"}
+                {busy === `pdf-${selected?.case_id}` ? "Compiling PDF…" : "Download Official PDF"}
               </button>
             </div>
           </div>

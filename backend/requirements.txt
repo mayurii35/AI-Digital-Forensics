@@ -62,3 +62,5 @@ tzdata==2026.3
 urllib3==2.7.0
 uvicorn==0.52.4
 python-docx>=1.2.0
+torch>=2.2,<3
+transformers>=4.45,<5

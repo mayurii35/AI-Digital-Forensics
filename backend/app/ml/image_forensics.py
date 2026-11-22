@@ -1,5 +1,6 @@
 import io
 import os
+from functools import lru_cache
 import numpy as np
 from PIL import Image, ImageChops, ImageEnhance, ExifTags
 
@@ -94,10 +95,80 @@ def perform_error_level_analysis(image_path: str, quality: int = 90) -> dict:
                 "confidence": confidence,
                 "method": "Error Level Analysis (ELA 90%) + EXIF Header Triage"
             }
-
     except Exception as e:
         return {
             "error": f"ELA computation failed: {str(e)}",
             "tamper_score": 0.0,
             "is_tampered": False
         }
+
+
+IMAGE_AUTHENTICITY_MODEL = os.getenv("IMAGE_AUTHENTICITY_MODEL", "agasta/virtus")
+
+
+@lru_cache(maxsize=1)
+def _load_image_authenticity_model():
+    # Lazy loading avoids model downloads for non-image analysis.
+    import torch
+    from transformers import AutoImageProcessor, AutoModelForImageClassification
+
+    processor = AutoImageProcessor.from_pretrained(IMAGE_AUTHENTICITY_MODEL)
+    model = AutoModelForImageClassification.from_pretrained(IMAGE_AUTHENTICITY_MODEL)
+    model.eval()
+    return torch, processor, model
+
+
+def classify_image_authenticity(image_path: str) -> dict:
+    """Use a pretrained vision transformer to screen face images for deepfakes."""
+    if not image_path or not os.path.isfile(image_path):
+        return {"status": "error", "error": "Image file not found on disk", "model": IMAGE_AUTHENTICITY_MODEL}
+
+    try:
+        from PIL import ImageOps
+
+        torch, processor, model = _load_image_authenticity_model()
+        with Image.open(image_path) as source:
+            image = ImageOps.exif_transpose(source).convert("RGB")
+        inputs = processor(images=image, return_tensors="pt")
+
+        with torch.inference_mode():
+            probabilities = torch.softmax(model(**inputs).logits[0], dim=-1)
+
+        labels = model.config.id2label
+        scores = {
+            str(labels.get(index, f"class_{index}")): round(float(probability) * 100, 2)
+            for index, probability in enumerate(probabilities)
+        }
+        predicted_index = int(torch.argmax(probabilities).item())
+        predicted_label = str(labels.get(predicted_index, f"class_{predicted_index}"))
+        normalized_label = predicted_label.lower().replace("_", " ").replace("-", " ")
+
+        if any(word in normalized_label for word in ("fake", "deepfake", "synthetic", "artificial")):
+            verdict = "suspected_fake"
+        elif any(word in normalized_label for word in ("real", "authentic", "genuine")):
+            verdict = "likely_real"
+        else:
+            verdict = "unmapped_label"
+
+        return {
+            "status": "analysis_complete",
+            "model": IMAGE_AUTHENTICITY_MODEL,
+            "scope": "real-vs-deepfake classification for face images",
+            "verdict": verdict,
+            "predicted_label": predicted_label,
+            "confidence": round(float(probabilities[predicted_index]) * 100, 2),
+            "class_probabilities": scores,
+            "limitation": (
+                "Research screening only. The model is intended for face images; "
+                "it does not detect arbitrary suspicious objects or guarantee authenticity."
+            ),
+        }
+    except ImportError as error:
+        return {
+            "status": "model_unavailable",
+            "model": IMAGE_AUTHENTICITY_MODEL,
+            "error": "Install the backend image-model dependencies (torch and transformers).",
+            "details": str(error),
+        }
+    except Exception as error:
+        return {"status": "error", "model": IMAGE_AUTHENTICITY_MODEL, "error": str(error)}

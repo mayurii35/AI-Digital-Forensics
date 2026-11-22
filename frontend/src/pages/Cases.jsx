@@ -114,17 +114,20 @@ export default function Cases() {
         </div>
       )}
 
-      <div className="toolbar">
-        <div className="search-input">
-          <Search size={16} />
+      <div className="cases-modern-toolbar">
+        <div className="cases-modern-search-wrap">
+          <Search className="search-icon" size={24} />
           <input
             id="cases-search-input"
+            className="cases-modern-search-input"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by case title, crime category…"
+            placeholder="Search active investigations..."
           />
         </div>
-        <span className="muted">{filtered.length} matter{filtered.length === 1 ? "" : "s"} listed</span>
+        <div className="cases-modern-search-meta">
+          <span>{filtered.length} matter{filtered.length === 1 ? "" : "s"} listed</span>
+        </div>
       </div>
 
       <div className="card table-card">

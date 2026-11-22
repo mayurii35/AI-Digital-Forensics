@@ -99,13 +99,14 @@ export default function AuditLogs() {
 
       {/* TOOLBAR */}
       <div className="card audit-toolbar">
-        <div className="search-input-wrap">
-          <Search size={16} className="text-secondary" />
+        <div className="cases-modern-search-wrap" style={{ margin: "16px 0", maxWidth: "600px" }}>
+          <Search size={20} className="search-icon" />
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Search by action, description, case ID, or investigator…"
-            className="audit-search-input"
+            className="cases-modern-search-input"
+            style={{ padding: "12px 16px", fontSize: "1rem" }}
           />
         </div>
 
@@ -175,11 +176,15 @@ export default function AuditLogs() {
                         </div>
                       </td>
                       <td className="desc-cell">{l.description || "—"}</td>
-                      <td className="hash-ref">
-                        {l.case_id ? `${l.case_id.slice(0, 8)}…` : "—"}
+                      <td>
+                        <span className="hash-ref">
+                          {l.case_id ? `${l.case_id.slice(0, 8)}…` : "—"}
+                        </span>
                       </td>
-                      <td className="hash-ref">
-                        {l.evidence_id ? `${l.evidence_id.slice(0, 8)}…` : "—"}
+                      <td>
+                        <span className="hash-ref">
+                          {l.evidence_id ? `${l.evidence_id.slice(0, 8)}…` : "—"}
+                        </span>
                       </td>
                     </tr>
                   );
